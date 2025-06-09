@@ -4,9 +4,14 @@ from utils.factura_utils import *
 from utils.producto_utils import *
 from utils.RegistrarActividadCatalogo import *
 from utils.RegistrarConexion import *
+from ConexionRedis import get_redis_client
+import threading
 
 
 def main():
+
+    redis_conn = get_redis_client()
+
     print("Bienvenido a la tienda de deportes")
 
     while True:
@@ -34,7 +39,8 @@ def main():
             contraseña=input("Contraseña: ")
             if login_usuario(documento,contraseña):
                 print("Inicio de sesion exitoso")
-
+               # hilo_ranking = threading.Thread(target=guardar_ranking_periodicamente, daemon=True)
+               # hilo_ranking.start()
                 if es_admin(documento):
                     while True:
                         print("*******************")
@@ -43,7 +49,8 @@ def main():
                         print("3-Agregar descuento")
                         print("4-Ver lista de cambios de catalogo")
                         print("5-Agregar dinero a cuenta corriente")
-                        print("6-Salir")
+                        print("6 - Guardar ranking de productos")
+                        print("7-Salir")
                         seleccion_admin=input("Elija una opcion: ")
                         if seleccion_admin=='1':
                             crear_producto()
@@ -59,7 +66,10 @@ def main():
                             documento_usuario=input("Ingrese el documento del usuario: ")
                             cantidad_dinero=int(input("Ingrese el dinero a agregar: "))
                             agregar_cuenta_corriente(documento_usuario,cantidad_dinero)
-                        elif seleccion_admin=='6':
+                        elif seleccion_admin == '6':
+                            guardar_ranking_en_mongo(redis_conn, get_db())
+                            print("✅ Ranking guardado en MongoDB.")
+                        elif seleccion_admin=='7':
                             break
                         else:
                             print("Opcion incorrecta")
@@ -81,17 +91,27 @@ def main():
                             ver_datos(documento)
                         elif seleccion_menu=='2':
                             print("*******************")
-                            print("1-Ver catalogo")
-                            print("2-Añadir comentario")
+                            print("1-Ver todo el catálogo")
+                            print("2-Ver un producto (y registrar vista)")
+                            print("3-Ver productos mas visitados")
+                            print("4-Añadir comentario")
                             seleccion_catalogo=input("Elija una opcion: ")
+
                             if seleccion_catalogo=='1':
                                 ver_productos()
                             elif seleccion_catalogo=='2':
+                               id_producto = int(input("Ingrese el ID del producto: "))
+                               ver_producto_por_id(id_producto, redis_conn)
+                            elif seleccion_catalogo=='3':
+                                ver_top_productos()
+                            elif seleccion_catalogo=='4':
                                 id_producto=int(input("Ingrese el id: "))
                                 comentario=input("Comentario: ")
                                 agregar_comentario(id_producto,comentario)
                             else:
                                 print("Opcion incorrecta")
+                            
+
                         elif seleccion_menu=='3':
                             print("*******************")
                             print("1-Añadir Producto")
@@ -154,7 +174,7 @@ def main():
         
         elif seleccion=='3':
             if not es_admin(documento):
-                registrar_desconexion(documento)  # Registrar desconexión
+                registrar_desconexion(documento)  
                 categoria = categorizar_usuario(documento)
                 print(f"El usuario {documento} es un usuario {categoria}", "\n")
             print("Saliendo del sistema...")

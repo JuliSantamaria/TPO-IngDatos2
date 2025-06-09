@@ -1,6 +1,8 @@
 from ConexionMongo import get_db
 from models.producto import Producto
-from utils.RegistrarActividadCatalogo import registrar_actividad
+from utils.RegistrarActividadCatalogo import *
+
+
 
 def crear_producto():
     db=get_db()
@@ -25,14 +27,39 @@ def crear_producto():
 
 
 def ver_productos():
-    db=get_db()
-    productos_coleccion=db.productos
-    results=productos_coleccion.find()
+    db = get_db()
+    productos_coleccion = db.productos
+    results = productos_coleccion.find()
 
-    print("Id","Nombre","Precio","Stock","Descuento")
+    print("\n{:<5} {:<20}".format("ID", "Nombre"))
+    print("-" * 30)
 
     for r in results:
-        print(r["id_producto"],r["nombre"],r["precio"],r["stock"],r["descuento"])
+        print("{:<5} {:<20}".format(
+            r.get("id_producto", ""),
+            r.get("nombre", "")
+        ))
+    print("-" * 30)
+
+def ver_top_productos(limit=5):
+    db = get_db()
+    ranking_coleccion = db.ranking_productos
+    productos_coleccion = db.productos
+    results = productos_coleccion.find()
+
+    top_productos = ranking_coleccion.find().sort("vistas", -1).limit(limit)
+
+    print("{:<5} {:<30} {:<10}".format("ID", "Nombre", "Vistas"))
+    print("-" * 50)
+
+    for p in top_productos:
+        print("{:<5} {:<30} {:<10}".format(
+            p.get("id_producto", ""),
+            p.get("nombre", ""),
+            p.get("vistas", 0)
+        ))
+
+    print("-" * 50)
 
 def cargar_descuento(id_producto,cantidad):
     db=get_db()
@@ -128,6 +155,20 @@ def actualizar_producto(documento):
 
         registrar_actividad(id_producto,tipo,valor_viejo,valor_nuevo,documento)
 
+def ver_producto_por_id(id_producto, redis_conn):
+    db = get_db()
+    producto = db.productos.find_one({"id_producto": id_producto})
 
+    if producto:
+        print("\n--- Detalles del Producto ---")
+        print(f"Nombre: {producto.get('nombre')}")
+        print(f"Descripción: {producto.get('descripcion')}")
+        print(f"Precio: ${producto.get('precio')}")
+        print(f"Stock: {producto.get('stock')}")
+        print(f"Descuento: {producto.get('descuento')}")
 
+        registrar_vista_producto(redis_conn, id_producto)
+
+    else:
+        print("❌ Producto no encontrado.")
 

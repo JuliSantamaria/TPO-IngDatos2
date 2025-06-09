@@ -8,14 +8,13 @@ def registrar_conexion(documento):
     fecha_actual = datetime.date.today().strftime('%Y-%m-%d')
 
     redis_client.hset(f"usuario:{documento}:conexion", "inicio", fecha_hora_inicio)
-    #redis_client.lpush(f"usuario:{documento}:dias_conexion", fecha_actual)
     redis_client.pfadd(f"usuario:{documento}:dias_unicos", fecha_actual)
 
 def registrar_desconexion(documento):
     fecha_hora_fin = datetime.datetime.now().timestamp()
     inicio = redis_client.hget(f"usuario:{documento}:conexion", "inicio")
 
-    if inicio:
+    if inicio:  
         tiempo_conexion = fecha_hora_fin - float(inicio)
         fecha_actual = datetime.date.today().strftime('%Y-%m-%d')
         redis_client.lpush(f"usuario:{documento}:conexiones:{fecha_actual}", tiempo_conexion)
